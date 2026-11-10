@@ -218,7 +218,7 @@ function SettingsBody({
         />
         <SettingsRow
           title="Answer language"
-          note="Summaries and chat replies"
+          note="Summaries, diagrams, and chat"
           control={
             <Picker<AnswerLanguage>
               label="Answer language"

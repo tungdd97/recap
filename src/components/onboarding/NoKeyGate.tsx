@@ -14,7 +14,11 @@ const ROWS: { icon: Icon; title: string; note: string }[] = [
   },
 ]
 
-export function NoKeyGate({ verb }: { verb: "summarize videos" | "chat with videos" }) {
+export function NoKeyGate({
+  verb,
+}: {
+  verb: "summarize videos" | "chat with videos" | "draw a diagram"
+}) {
   const { setView, selectTab } = usePanelNav()
   return (
     <div className="flex flex-col gap-[20px] p-[20px] py-[28px]">
