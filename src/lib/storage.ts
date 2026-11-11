@@ -94,6 +94,16 @@ export type ApiKeys = Partial<Record<ProviderId, string>>
 
 export const apiKeysItem = storage.defineItem<ApiKeys>("local:apiKeys", { fallback: {} })
 
+/** Signed-in flag only. Tokens stay in the background vault and are not stored here. */
+export interface ChatGptSession {
+  signedIn: boolean
+  message: string
+}
+
+export const chatgptSessionItem = storage.defineItem<ChatGptSession>("local:chatgptSession", {
+  fallback: { signedIn: false, message: "" },
+})
+
 export interface PanelState {
   open: boolean
   tab: PanelTab

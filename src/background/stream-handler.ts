@@ -14,6 +14,7 @@ import { buildSummaryPrompt } from "../lib/prompts/summary"
 import { buildChatSystemPrompt } from "../lib/prompts/system"
 import { createModel, PROVIDERS } from "../lib/providers"
 import { recordUsage as addUsage, apiKeysItem, monthKey, usageItem } from "../lib/storage"
+import { runChatGptRequest } from "./chatgpt-stream"
 
 const INVALID_KEY = "Invalid API key. Check it in Settings."
 const RATE_LIMITED = "Rate limited by the provider. Try again shortly."
@@ -181,6 +182,14 @@ export function registerStreamPortHandler(): void {
       const req = raw as StreamRequest
       const post = (m: StreamPortMessage) => safePost(port, () => disconnected, m)
       try {
+        if (req.selection.provider === "chatgpt") {
+          await runChatGptRequest(req, {
+            post,
+            signal: controller.signal,
+            recordUsage: defaultRecordUsage,
+          })
+          return
+        }
         const keys = await apiKeysItem.getValue()
         const key = keys[req.selection.provider]
         if (!key) {

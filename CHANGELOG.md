@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- ChatGPT (subscription): Sign in with ChatGPT, then summarize or draw a diagram on your plan. No API key. Sign out from Settings.
 - Sơ đồ tab: a Mermaid diagram of the video, drawn in the panel, with timestamps that seek playback. Copy the source, download SVG, or export it with the Markdown file.
 - Fresh installs default the answer language to Tiếng Việt. Summaries stay focused on the main ideas.
 

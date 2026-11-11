@@ -1,4 +1,4 @@
-export type ProviderId = "openai" | "anthropic" | "google" | "openrouter"
+export type ProviderId = "openai" | "anthropic" | "google" | "openrouter" | "chatgpt"
 export type PanelTab = "summary" | "transcript" | "chat" | "diagram"
 export type SummaryStyle = "detailed" | "tldr" | "moments"
 export type ThemeSetting = "youtube" | "dark" | "light"

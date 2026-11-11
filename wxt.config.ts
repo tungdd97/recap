@@ -22,9 +22,11 @@ export default defineConfig({
   manifest: {
     name: "Recap AI",
     version: "2.0.0",
-    permissions: ["storage"],
+    // webNavigation reads the ChatGPT loopback redirect; tabs opens and closes that sign-in tab.
+    permissions: ["storage", "webNavigation", "tabs"],
     host_permissions: [
       "https://api.openai.com/*",
+      "https://auth.openai.com/*",
       "https://api.anthropic.com/*",
       "https://generativelanguage.googleapis.com/*",
       "https://openrouter.ai/*",

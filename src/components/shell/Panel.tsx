@@ -7,6 +7,7 @@ import { DiagramActions, DiagramBody } from "@/components/diagram/DiagramPanel"
 import { type DiagramState, useDiagram } from "@/components/diagram/useDiagram"
 import { ConnectView } from "@/components/onboarding/ConnectView"
 import { NoKeyGate } from "@/components/onboarding/NoKeyGate"
+import { useChatGptSignedIn } from "@/components/settings/ChatGptAccount"
 import { NoCaptions } from "@/components/summary/NoCaptions"
 import { SummaryActions } from "@/components/summary/SummaryActions"
 import { SummaryProvider } from "@/components/summary/SummaryContext"
@@ -119,12 +120,13 @@ function TranscriptGate({
 interface BodyProps {
   tab: PanelTab
   hasKey: boolean
+  chatgpt: boolean
   video: VideoState
   diagram: DiagramState
   modelLabel: string
 }
 
-function Body({ tab, hasKey, video, diagram, modelLabel }: BodyProps) {
+function Body({ tab, hasKey, chatgpt, video, diagram, modelLabel }: BodyProps) {
   // All three stay mounted so in-flight chat streams and transcript search/scroll survive tab
   // switches; inactive ones are hidden (a class, since the panels set their own display).
   const pane = (name: PanelTab) => (tab === name ? "contents" : "hidden")
@@ -133,7 +135,7 @@ function Body({ tab, hasKey, video, diagram, modelLabel }: BodyProps) {
       <div className={pane("summary")}>
         {/* SummaryPanel handles transcript loading, no captions and errors itself. */}
         {!hasKey ? (
-          <NoKeyGate verb="summarize videos" />
+          <NoKeyGate verb="summarize videos" chatgpt={chatgpt} />
         ) : video.pageError !== null ? (
           <PageError video={video} />
         ) : (
@@ -152,7 +154,7 @@ function Body({ tab, hasKey, video, diagram, modelLabel }: BodyProps) {
         {hasKey ? (
           <TranscriptGate video={video}>{() => <ChatPanel video={video} />}</TranscriptGate>
         ) : (
-          <NoKeyGate verb="chat with videos" />
+          <NoKeyGate verb="chat with videos" chatgpt={chatgpt} />
         )}
       </div>
       <div className={pane("diagram")}>
@@ -169,7 +171,7 @@ function Body({ tab, hasKey, video, diagram, modelLabel }: BodyProps) {
             )}
           </TranscriptGate>
         ) : (
-          <NoKeyGate verb="draw a diagram" />
+          <NoKeyGate verb="draw a diagram" chatgpt={chatgpt} />
         )}
       </div>
     </>
@@ -191,6 +193,7 @@ export function Panel() {
   } = nav
   const [storedSettings] = useSettings()
   const [apiKeys] = useStorageItem(apiKeysItem)
+  const chatGptSignedIn = useChatGptSignedIn()
   const youtubeTheme = useTheme()
   const toast = useToast()
   const container = usePortalContainer()
@@ -213,7 +216,8 @@ export function Panel() {
   const provider = settings.provider
   const model = settings.models[provider]
   const selection = useMemo<ModelSelection>(() => ({ provider, model }), [provider, model])
-  const hasKey = Boolean(apiKeys?.[provider])
+  const isChatGpt = provider === "chatgpt"
+  const hasKey = isChatGpt ? chatGptSignedIn : Boolean(apiKeys?.[provider])
   const summary = useSummary(video.context, selection, settings, open && hasKey)
   const dark = settings.theme === "youtube" ? youtubeTheme === "dark" : settings.theme === "dark"
   const diagram = useDiagram(video.context, hasKey ? selection : null, settings, dark)
@@ -402,6 +406,7 @@ export function Panel() {
               <Body
                 tab={tab}
                 hasKey={hasKey}
+                chatgpt={isChatGpt}
                 video={video}
                 diagram={diagram}
                 modelLabel={PROVIDERS[provider].models.find((m) => m.id === model)?.label ?? model}
