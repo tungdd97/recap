@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { browser } from "wxt/browser"
 import { useStorageItem } from "@/hooks/useStorageItem"
-import { fetchLatestReleaseVersion } from "@/lib/release/fetch"
+import { requestLatestReleaseVersion } from "@/lib/release/messages"
 import { shouldCheckForUpdate, visibleUpdateVersion } from "@/lib/release/notice"
 import { updateCheckItem } from "@/lib/storage"
 
@@ -36,7 +36,7 @@ export function useUpdateNotice(open: boolean): { version: string | null; dismis
     void (async () => {
       let latest = snapshot.latest
       try {
-        const found = await fetchLatestReleaseVersion()
+        const found = await requestLatestReleaseVersion()
         if (found) latest = found
       } catch {
         // A failed lookup still starts the six-hour wait.
