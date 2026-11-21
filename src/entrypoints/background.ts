@@ -1,5 +1,6 @@
 import { browser } from "wxt/browser"
 import { registerChatGptHandler } from "@/background/chatgpt-handler"
+import { registerReleaseCheckHandler } from "@/background/release-check"
 import { deliverCommand, syncGrantedOrigins } from "@/background/site-access"
 import { registerStreamPortHandler } from "@/background/stream-handler"
 import { registerKeyCheckHandler } from "@/background/validate-key"
@@ -16,6 +17,7 @@ export default defineBackground(() => {
   registerStreamPortHandler()
   registerKeyCheckHandler()
   registerChatGptHandler()
+  registerReleaseCheckHandler()
   void syncGrantedOrigins()
 
   browser.commands.onCommand.addListener((command) => {
