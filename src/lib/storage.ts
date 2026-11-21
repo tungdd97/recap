@@ -196,7 +196,7 @@ export const panelStateItem = storage.defineItem<PanelState>("local:panel", {
 
 /** Sidebar width and focus mode. Kept off `local:panel` so opening a tab cannot wipe it. */
 export const layoutItem = storage.defineItem<LayoutPrefs>("local:layout", {
-  fallback: { width: null, focus: false },
+  fallback: { width: null, height: null, focus: false },
 })
 
 export const transcriptCacheItem = storage.defineItem<TranscriptCache>("local:transcriptCache", {

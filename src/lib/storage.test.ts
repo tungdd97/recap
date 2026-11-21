@@ -67,11 +67,11 @@ describe("items", () => {
 
 describe("layoutItem", () => {
   it("stores the sidebar width and focus flag apart from the panel tab", async () => {
-    expect(await layoutItem.getValue()).toEqual({ width: null, focus: false })
-    await layoutItem.setValue({ width: 640, focus: true })
-    expect(await layoutItem.getValue()).toEqual({ width: 640, focus: true })
+    expect(await layoutItem.getValue()).toEqual({ width: null, height: null, focus: false })
+    await layoutItem.setValue({ width: 640, height: 800, focus: true })
+    expect(await layoutItem.getValue()).toEqual({ width: 640, height: 800, focus: true })
     await panelStateItem.setValue({ open: true, tab: "chat" })
-    expect(await layoutItem.getValue()).toEqual({ width: 640, focus: true })
+    expect(await layoutItem.getValue()).toEqual({ width: 640, height: 800, focus: true })
   })
 })
 

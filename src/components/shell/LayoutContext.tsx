@@ -18,12 +18,15 @@ import {
   ensureLayoutStyle,
 } from "@/lib/layout/page-style"
 import {
+  clampPanelHeight,
   decideDrawerLayout,
   decideLayout,
   isPageFullscreen,
   type LayoutDecision,
   type LayoutPrefs,
   nextFocus,
+  PANEL_HEIGHT_DEFAULT_PX,
+  panelMaxHeightPx,
   readLayout,
 } from "@/lib/layout/panel-layout"
 import { layoutItem } from "@/lib/storage"
@@ -38,6 +41,9 @@ export interface LayoutController {
   /** Last choice in storage, including while fullscreen hides it. */
   storedFocus: boolean
   canResize: boolean
+  /** Card height outside focus mode, clamped to the current window. */
+  heightPx: number
+  maxHeightPx: number
   /** False in fullscreen or when the window is too narrow to enter. */
   canFocus: boolean
   /** False when the button and shortcut should no-op (fullscreen, or too narrow to enter). */
@@ -49,6 +55,8 @@ export interface LayoutController {
   previewWidth(width: number): void
   commitWidth(width: number): void
   resetWidth(): void
+  commitHeight(height: number): void
+  resetHeight(): void
 }
 
 const LayoutContext = createContext<LayoutController | null>(null)
@@ -86,7 +94,7 @@ export function LayoutProvider({
   const [stored, setStored] = useStorageItem(layoutItem)
   const ready = stored !== undefined
   const prefs: LayoutPrefs =
-    stored === undefined ? { width: null, focus: false } : readLayout(stored)
+    stored === undefined ? { width: null, height: null, focus: false } : readLayout(stored)
   const prefsRef = useRef<LayoutPrefs>(prefs)
   useEffect(() => {
     if (stored !== undefined) prefsRef.current = readLayout(stored)
@@ -95,12 +103,15 @@ export function LayoutProvider({
   openRef.current = open
 
   const [viewport, setViewport] = useState(() => window.innerWidth)
+  const [viewportHeight, setViewportHeight] = useState(() => window.innerHeight)
   const [fullscreen, setFullscreen] = useState(() => isPageFullscreen(document))
   const fullscreenRef = useRef(fullscreen)
   fullscreenRef.current = fullscreen
   // undefined: follow storage. null: reset to the default. number: a drag that storage has not echoed yet.
   const [live, setLive] = useState<number | null | undefined>(undefined)
   const draggingRef = useRef(false)
+  // Same as `live`, for the height: holds a committed drag until storage echoes it.
+  const [liveHeight, setLiveHeight] = useState<number | null | undefined>(undefined)
 
   const write = useCallback(
     (next: LayoutPrefs) => {
@@ -131,9 +142,17 @@ export function LayoutProvider({
   useEffect(() => {
     if (live !== undefined && prefs.width === live) setLive(undefined)
   }, [live, prefs.width])
+  useEffect(() => {
+    if (liveHeight !== undefined && prefs.height === liveHeight) setLiveHeight(undefined)
+  }, [liveHeight, prefs.height])
+  const preferredHeight = liveHeight === undefined ? prefs.height : liveHeight
+  const heightPx = clampPanelHeight(preferredHeight ?? PANEL_HEIGHT_DEFAULT_PX, viewportHeight)
 
   useEffect(() => {
-    const onResize = () => setViewport(window.innerWidth)
+    const onResize = () => {
+      setViewport(window.innerWidth)
+      setViewportHeight(window.innerHeight)
+    }
     window.addEventListener("resize", onResize)
     return () => window.removeEventListener("resize", onResize)
   }, [])
@@ -221,7 +240,7 @@ export function LayoutProvider({
     const next = nextFocus(prefsRef.current.focus, isPageFullscreen(document), window.innerWidth)
     if (next === null) return
     if (next) selectTab("chat")
-    write({ width: prefsRef.current.width, focus: next })
+    write({ ...prefsRef.current, focus: next })
   }, [ready, selectTab, write])
 
   useEffect(() => {
@@ -235,7 +254,7 @@ export function LayoutProvider({
       }
       event.preventDefault()
       event.stopPropagation()
-      write({ width: prefsRef.current.width, focus: false })
+      write({ ...prefsRef.current, focus: false })
     }
     document.addEventListener("recap-focus-mode", onCommand)
     document.addEventListener("keydown", onKey, true)
@@ -257,7 +276,7 @@ export function LayoutProvider({
     (width: number) => {
       draggingRef.current = false
       setLive(width)
-      write({ width, focus: prefsRef.current.focus })
+      write({ ...prefsRef.current, width })
       paint(width, false)
       window.dispatchEvent(new Event("resize"))
     },
@@ -267,10 +286,23 @@ export function LayoutProvider({
   const resetWidth = useCallback(() => {
     draggingRef.current = false
     setLive(null)
-    write({ width: null, focus: prefsRef.current.focus })
+    write({ ...prefsRef.current, width: null })
     paint(null, false)
     window.dispatchEvent(new Event("resize"))
   }, [paint, write])
+
+  const commitHeight = useCallback(
+    (height: number) => {
+      setLiveHeight(height)
+      write({ ...prefsRef.current, height })
+    },
+    [write],
+  )
+
+  const resetHeight = useCallback(() => {
+    setLiveHeight(null)
+    write({ ...prefsRef.current, height: null })
+  }, [write])
 
   const value = useMemo<LayoutController>(
     () => ({
@@ -279,6 +311,8 @@ export function LayoutProvider({
       focus: decision.focus,
       storedFocus: prefs.focus,
       canResize: ready && decision.sized,
+      heightPx,
+      maxHeightPx: panelMaxHeightPx(viewportHeight),
       canFocus: nextFocus(false, fullscreen, viewport) === true,
       canToggle: nextFocus(prefs.focus, fullscreen, viewport) !== null,
       theater,
@@ -287,6 +321,8 @@ export function LayoutProvider({
       previewWidth,
       commitWidth,
       resetWidth,
+      commitHeight,
+      resetHeight,
     }),
     [
       decision,
@@ -299,6 +335,10 @@ export function LayoutProvider({
       previewWidth,
       commitWidth,
       resetWidth,
+      heightPx,
+      viewportHeight,
+      commitHeight,
+      resetHeight,
     ],
   )
 
