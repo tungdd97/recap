@@ -11,9 +11,16 @@ export const FOCUS_MIN_PX = 900
 const KEY_STEP = 16
 const KEY_STEP_LARGE = 48
 
+export const PANEL_HEIGHT_DEFAULT_PX = 640
+export const PANEL_HEIGHT_MIN_PX = 400
+/** Room kept above and below the card: YouTube's 56px masthead plus margins. */
+export const PANEL_HEIGHT_GAP_PX = 80
+
 export interface LayoutPrefs {
   /** User's chosen width, or null for the 400px default. Not clamped to the current window. */
   width: number | null
+  /** User's chosen card height, or null for the 640px default. Not clamped to the current window. */
+  height: number | null
   focus: boolean
 }
 
@@ -139,11 +146,64 @@ export function widthFromKey(
   }
 }
 
+function finiteOrNull(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null
+}
+
+/** Preferences saved before `height` existed read as the default height. */
 export function readLayout(stored: unknown): LayoutPrefs {
-  if (typeof stored !== "object" || stored === null) return { width: null, focus: false }
+  if (typeof stored !== "object" || stored === null) {
+    return { width: null, height: null, focus: false }
+  }
   const raw = stored as Record<string, unknown>
-  const width = typeof raw.width === "number" && Number.isFinite(raw.width) ? raw.width : null
-  return { width, focus: raw.focus === true }
+  return {
+    width: finiteOrNull(raw.width),
+    height: finiteOrNull(raw.height),
+    focus: raw.focus === true,
+  }
+}
+
+export function panelMaxHeightPx(viewportHeight: number): number {
+  if (!Number.isFinite(viewportHeight) || viewportHeight <= 0) return PANEL_HEIGHT_MIN_PX
+  return Math.max(PANEL_HEIGHT_MIN_PX, Math.floor(viewportHeight - PANEL_HEIGHT_GAP_PX))
+}
+
+export function clampPanelHeight(requested: number, viewportHeight: number): number {
+  if (!Number.isFinite(requested)) return PANEL_HEIGHT_DEFAULT_PX
+  const max = panelMaxHeightPx(viewportHeight)
+  return Math.min(max, Math.max(PANEL_HEIGHT_MIN_PX, Math.round(requested)))
+}
+
+/** The handle is on the bottom edge, so moving the pointer down makes the card taller. */
+export function heightFromDrag(
+  startHeight: number,
+  startY: number,
+  clientY: number,
+  viewportHeight: number,
+): number {
+  return clampPanelHeight(startHeight + (clientY - startY), viewportHeight)
+}
+
+/** ArrowDown grows. Shift uses a larger step. Home/End jump to the ends. */
+export function heightFromKey(
+  current: number,
+  key: string,
+  shift: boolean,
+  viewportHeight: number,
+): number | null {
+  const step = shift ? KEY_STEP_LARGE : KEY_STEP
+  switch (key) {
+    case "ArrowDown":
+      return clampPanelHeight(current + step, viewportHeight)
+    case "ArrowUp":
+      return clampPanelHeight(current - step, viewportHeight)
+    case "Home":
+      return clampPanelHeight(PANEL_HEIGHT_MIN_PX, viewportHeight)
+    case "End":
+      return panelMaxHeightPx(viewportHeight)
+    default:
+      return null
+  }
 }
 
 /** Composer cap: 40% of the card, with a floor so a short card still fits a couple of lines. */

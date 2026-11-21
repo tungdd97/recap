@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest"
 import {
+  clampPanelHeight,
   clampPanelWidth,
   composerMaxPx,
   decideDrawerLayout,
   decideLayout,
   FOCUS_MIN_PX,
+  heightFromDrag,
+  heightFromKey,
   isPageFullscreen,
   nextFocus,
   PANEL_DEFAULT_PX,
+  PANEL_HEIGHT_DEFAULT_PX,
+  PANEL_HEIGHT_GAP_PX,
+  PANEL_HEIGHT_MIN_PX,
   PANEL_MIN_PX,
   readLayout,
   SIDE_BY_SIDE_MIN_PX,
@@ -166,11 +172,45 @@ describe("decideDrawerLayout", () => {
 })
 
 describe("readLayout", () => {
+  const none = { width: null, height: null, focus: false }
   it("accepts a stored preference and drops junk", () => {
-    expect(readLayout({ width: 640, focus: true })).toEqual({ width: 640, focus: true })
-    expect(readLayout({ width: "640", focus: 1 })).toEqual({ width: null, focus: false })
-    expect(readLayout(null)).toEqual({ width: null, focus: false })
-    expect(readLayout({ width: Number.NaN, focus: false })).toEqual({ width: null, focus: false })
+    expect(readLayout({ width: 640, height: 800, focus: true })).toEqual({
+      width: 640,
+      height: 800,
+      focus: true,
+    })
+    expect(readLayout({ width: "640", height: "800", focus: 1 })).toEqual(none)
+    expect(readLayout(null)).toEqual(none)
+    expect(readLayout({ width: Number.NaN, height: Number.NaN, focus: false })).toEqual(none)
+  })
+  it("reads a preference saved before height existed", () => {
+    expect(readLayout({ width: 640, focus: true })).toEqual({
+      width: 640,
+      height: null,
+      focus: true,
+    })
+  })
+})
+
+describe("panel height", () => {
+  it("clamps between the floor and the window minus the masthead", () => {
+    expect(clampPanelHeight(800, 1000)).toBe(800)
+    expect(clampPanelHeight(100, 1000)).toBe(PANEL_HEIGHT_MIN_PX)
+    expect(clampPanelHeight(5000, 1000)).toBe(1000 - PANEL_HEIGHT_GAP_PX)
+    expect(clampPanelHeight(Number.NaN, 1000)).toBe(PANEL_HEIGHT_DEFAULT_PX)
+    // A window shorter than the floor still gets the floor.
+    expect(clampPanelHeight(800, 300)).toBe(PANEL_HEIGHT_MIN_PX)
+  })
+  it("grows when the pointer moves down", () => {
+    expect(heightFromDrag(640, 500, 600, 1000)).toBe(740)
+    expect(heightFromDrag(640, 500, 400, 1000)).toBe(540)
+  })
+  it("steps with the arrow keys and jumps with Home/End", () => {
+    expect(heightFromKey(640, "ArrowDown", false, 1000)).toBe(656)
+    expect(heightFromKey(640, "ArrowUp", true, 1000)).toBe(592)
+    expect(heightFromKey(640, "Home", false, 1000)).toBe(PANEL_HEIGHT_MIN_PX)
+    expect(heightFromKey(640, "End", false, 1000)).toBe(1000 - PANEL_HEIGHT_GAP_PX)
+    expect(heightFromKey(640, "ArrowLeft", false, 1000)).toBeNull()
   })
 })
 

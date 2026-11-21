@@ -44,6 +44,7 @@ import { CollapsedRow } from "./CollapsedRow"
 import { collapsedStatus } from "./collapsed-status"
 import { EmptyState } from "./EmptyState"
 import { Header } from "./Header"
+import { HeightHandle } from "./HeightHandle"
 import { useLayout } from "./LayoutContext"
 import { MoreMenu } from "./MoreMenu"
 import { usePanelNav } from "./NavigationContext"
@@ -431,7 +432,7 @@ export function Panel() {
   const showMain = open && view === "main"
   const transcriptScrolls = tab === "transcript" && showMain && video.transcript.state === "ready"
   // Summary idle / error / no-captions / no-key screens are short: the card hugs them instead
-  // of reserving the full scroll height. Everything that scrolls keeps the fixed 640px.
+  // of reserving the full scroll height. Everything that scrolls keeps the user's card height.
   const fitContent =
     showMain &&
     ((tab === "summary" && !(summary.status === "streaming" || summary.status === "done")) ||
@@ -446,8 +447,7 @@ export function Panel() {
           data-recap-focus={layout.focus ? "true" : "false"}
           className={cn(
             "relative flex flex-col overflow-hidden rounded-[12px] border bg-background font-sans text-body text-foreground antialiased",
-            layout.focus ? "min-h-0 w-full min-w-0" : open && !fitContent ? "h-[640px]" : "h-auto",
-            !layout.focus && fitContent && "max-h-[640px]",
+            layout.focus ? "min-h-0 w-full min-w-0" : open && !fitContent ? null : "h-auto",
             TEXT_SIZE_CLASS[settings.textSize],
             dark && "dark",
           )}
@@ -461,9 +461,21 @@ export function Panel() {
                     ? "min(720px, calc(100vh - 96px))"
                     : "calc(100vh - var(--ytd-watch-flexy-masthead-height, 56px) - 24px)",
                 }
-              : undefined
+              : open && !fitContent
+                ? { height: `${layout.heightPx}px` }
+                : fitContent
+                  ? { maxHeight: `${layout.heightPx}px` }
+                  : undefined
           }
         >
+          {!layout.focus && open && !fitContent && layout.ready ? (
+            <HeightHandle
+              heightPx={layout.heightPx}
+              maxPx={layout.maxHeightPx}
+              onCommit={layout.commitHeight}
+              onReset={layout.resetHeight}
+            />
+          ) : null}
           {layout.canResize ? (
             <ResizeHandle
               widthPx={layout.widthPx}
